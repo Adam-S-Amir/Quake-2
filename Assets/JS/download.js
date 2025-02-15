@@ -6,14 +6,14 @@ var time = new Date().getTime();
 
 
 function println(s) {
-  document.getElementById("log").textContent += s +"\n";
+  document.getElementById("log").textContent += s + "\n";
   document.getElementById("log-bottom").scrollIntoView();
 }
 
 function backspace(cnt, s) {
   text = document.getElementById("log").textContent;
-  document.getElementById("log").textContent = 
-    text.substring(0, text.length - cnt) + s +"\n";
+  document.getElementById("log").textContent =
+    text.substring(0, text.length - cnt) + s + "\n";
 }
 
 function error(msg) {
@@ -29,20 +29,21 @@ function fsErrorHandler(msg) {
 
 
 function downloadAndUnpack() {
+  document.getElementById("splash").style.display = "none";
   if (!window.requestFileSystem) {
-     error("File System not available; try this demo with Google Chrome or a different browser with full HTML5 support.");
-     return;
+    error("File System not available; try this demo with Google Chrome or a different browser with full HTML5 support.");
+    return;
   }
 
-  var url = document.getElementById('source_url').value;
+  var url = "./Assets/bin/Game.zip";
   // println("Donwloading and inflating " + url);
   println("Donwloading and inflating");
-  zip.createReader(new zip.HttpReader(url), function(reader) { 
+  zip.createReader(new zip.HttpReader(url), function (reader) {
     println("Created ZIP reader, getting entries");
-    reader.getEntries(function(zipEntries) {
+    reader.getEntries(function (zipEntries) {
       processZipEntries(zipEntries, 0);
     }); // getEntries
-  }, function(msg) {
+  }, function (msg) {
     error("Creating a ZIP reader failed: " + msg);
   });
 }
@@ -61,25 +62,25 @@ function processZipEntries(zipEntries, startIndex) {
   }
   println("Unpacking: " + (startIndex + 1) + "/" + zipEntries.length + ": " + fileName + " ...    ");
 
-  createQuakeFile(fileName, function(fileEntry) {
+  createQuakeFile(fileName, function (fileEntry) {
     // blobWriter = new zip.BlobWriter("application/binary");
     // console.log("created blobwriter", blobWriter);
-    zipEntry.getData(new zip.FileWriter(fileEntry), function() {
+    zipEntry.getData(new zip.FileWriter(fileEntry), function () {
       /*fileEntry.createWriter(function(writer) {
         blobWriter.getData(function(blob) {
           writer.write(blob);
           console.log("done: ", blobWriter);*/
-          backspace(4, "Done");
-          processZipEntries(zipEntries, startIndex + 1);
-        
-    //  }, error);
-    }, function(current, total) {
+      backspace(4, "Done");
+      processZipEntries(zipEntries, startIndex + 1);
+
+      //  }, error);
+    }, function (current, total) {
       console.log("update", current, total);
       var newTime = new Date().getTime();
       if (newTime - time > 4000) {
         time = newTime;
-        
-        var percent = current/total*99;
+
+        var percent = current / total * 99;
         var s = String.fromCharCode(48 + percent / 10) + String.fromCharCode(48 + percent % 10) + "%";
         backspace(4, s);
       }
@@ -94,14 +95,18 @@ function createQuakeFile(fileName, callback) {
 
 function createFileImpl(root, parts, index, callback) {
   if (index == parts.length - 1) {
-    root.getFile(parts[index], {create: true}, callback);
+    root.getFile(parts[index], {
+      create: true
+    }, callback);
   } else {
-    root.getDirectory(parts[index], {create: true}, 
-      function(dirEntry) {
+    root.getDirectory(parts[index], {
+        create: true
+      },
+      function (dirEntry) {
         createFileImpl(dirEntry, parts, index + 1, callback);
       },
-      function(e) {
-        error("error obtaining directory " + parts[index] + ": " +e);
+      function (e) {
+        error("error obtaining directory " + parts[index] + ": " + e);
         window.console.log(e);
       });
   }
@@ -117,7 +122,7 @@ function done() {
 
 
 function requestPersistentFs() {
-  window.requestFileSystem(window.PERSISTENT, FS_SIZE, onInitFs, requestTempFs); 
+  window.requestFileSystem(window.PERSISTENT, FS_SIZE, onInitFs, requestTempFs);
 }
 
 function requestTempFs(msg) {
@@ -125,11 +130,11 @@ function requestTempFs(msg) {
     error(msg);
   }
   println("Persistent memory N/A. Using temporary memory.");
-  window.requestFileSystem(window.TEMPORARY, 100*1024*1024, onInitFs, 
-  function(msg) {
-    error(msg);
-    println("Giving up.")
-  });
+  window.requestFileSystem(window.TEMPORARY, 100 * 1024 * 1024, onInitFs,
+    function (msg) {
+      error(msg);
+      println("Giving up.")
+    });
 }
 
 function onInitFs(fileSystem) {
@@ -137,15 +142,13 @@ function onInitFs(fileSystem) {
   window.quakeFileSystem = fileSystem;
 
   window.quakeFileSystem.root.getFile("splash/wav/btnx.wav", {},
-    function() {
+    function () {
       println("Files downloaded and unpacked already.");
-      done();    
-      // document.getElementById("download_dialog").style.display = "block";
+      done();
     },
-    function() {
+    function () {
       println("Files not available. Waiting for user to provide URL and press 'Start'.");
       println("");
-      document.getElementById("download_dialog").style.display = "block";
     }
   );
 }
@@ -158,15 +161,15 @@ println("");
 zip.useWebWorkers = false;
 //zip.workerScriptsPath = "lib/";
 
-window.requestFileSystem  = window.requestFileSystem || 
-    window.webkitRequestFileSystem;
+window.requestFileSystem = window.requestFileSystem ||
+  window.webkitRequestFileSystem;
 
 // If we can ask for persistent storage, do so.
 if (window.webkitStorageInfo) {
   println("Quota API available. Asking for persistent storage.");
   println("If a browser dialog appears at the top of the screen, please confirm.");
   window.webkitStorageInfo.requestQuota(
-      PERSISTENT, FS_SIZE, requestPersistentFs, requestTempFs);
+    PERSISTENT, FS_SIZE, requestPersistentFs, requestTempFs);
 } else {
   requestPersistentFs(FS_SIZE);
 }

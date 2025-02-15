@@ -1,81 +1,63 @@
-(function(obj) {
-
+(function (obj) {
 	// Global
-
 	var MAX_BITS = 15;
 	var D_CODES = 30;
 	var BL_CODES = 19;
-
 	var LENGTH_CODES = 29;
 	var LITERALS = 256;
 	var L_CODES = (LITERALS + 1 + LENGTH_CODES);
 	var HEAP_SIZE = (2 * L_CODES + 1);
-
 	var END_BLOCK = 256;
-
 	// Bit length codes must not exceed MAX_BL_BITS bits
 	var MAX_BL_BITS = 7;
-
 	// repeat previous bit length 3-6 times (2 bits of repeat count)
 	var REP_3_6 = 16;
-
 	// repeat a zero length 3-10 times (3 bits of repeat count)
 	var REPZ_3_10 = 17;
-
 	// repeat a zero length 11-138 times (7 bits of repeat count)
 	var REPZ_11_138 = 18;
-
 	// The lengths of the bit length codes are sent in order of decreasing
 	// probability, to avoid transmitting the lengths for unused bit
 	// length codes.
-
 	var Buf_size = 8 * 2;
-
 	// JZlib version : "1.0.2"
 	var Z_DEFAULT_COMPRESSION = -1;
-
 	// compression strategy
 	var Z_FILTERED = 1;
 	var Z_HUFFMAN_ONLY = 2;
 	var Z_DEFAULT_STRATEGY = 0;
-
 	var Z_NO_FLUSH = 0;
 	var Z_PARTIAL_FLUSH = 1;
 	var Z_FULL_FLUSH = 3;
 	var Z_FINISH = 4;
-
 	var Z_OK = 0;
 	var Z_STREAM_END = 1;
 	var Z_NEED_DICT = 2;
 	var Z_STREAM_ERROR = -2;
 	var Z_DATA_ERROR = -3;
 	var Z_BUF_ERROR = -5;
-
 	// Tree
-
 	// see definition of array dist_code below
-	var _dist_code = [ 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-			10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-			12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
-			13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
-			14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
-			14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-			15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 16, 17, 18, 18, 19, 19,
-			20, 20, 20, 20, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
-			24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
-			26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
-			27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
-			28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 29,
-			29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29,
-			29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29 ];
-
+	var _dist_code = [0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+		10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+		12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+		13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+		14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+		14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+		15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 16, 17, 18, 18, 19, 19,
+		20, 20, 20, 20, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+		24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
+		26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+		27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+		28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 29,
+		29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29,
+		29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29
+	];
 	function Tree() {
 		var that = this;
-
 		// dyn_tree; // the dynamic tree
 		// max_code; // largest code with non zero frequency
 		// stat_desc; // the corresponding static tree
-
 		// Compute the optimal bit lengths for a tree and update the total bit
 		// length
 		// for the current block.
@@ -97,14 +79,11 @@
 			var xbits; // extra bits
 			var f; // frequency
 			var overflow = 0; // number of elements with bit length too large
-
 			for (bits = 0; bits <= MAX_BITS; bits++)
 				s.bl_count[bits] = 0;
-
 			// In a first pass, compute the optimal bit lengths (which may
 			// overflow in the case of the bit length tree).
 			tree[s.heap[s.heap_max] * 2 + 1] = 0; // root of the heap
-
 			for (h = s.heap_max + 1; h < HEAP_SIZE; h++) {
 				n = s.heap[h];
 				bits = tree[tree[n * 2 + 1] * 2 + 1] + 1;
@@ -114,10 +93,8 @@
 				}
 				tree[n * 2 + 1] = bits;
 				// We overwrite tree[n*2+1] which is no longer needed
-
 				if (n > that.max_code)
 					continue; // not a leaf node
-
 				s.bl_count[bits]++;
 				xbits = 0;
 				if (n >= base)
@@ -129,7 +106,6 @@
 			}
 			if (overflow === 0)
 				return;
-
 			// This happens for example on obj2 and pic of the Calgary corpus
 			// Find the first bit length which could increase:
 			do {
@@ -143,7 +119,6 @@
 				// but this does not affect bl_count[max_length]
 				overflow -= 2;
 			} while (overflow > 0);
-
 			for (bits = max_length; bits !== 0; bits--) {
 				n = s.bl_count[bits];
 				while (n !== 0) {
@@ -158,13 +133,12 @@
 				}
 			}
 		}
-
 		// Reverse the first len bits of a code, using straightforward code (a
 		// faster
 		// method would use a table)
 		// IN assertion: 1 <= len <= 15
 		function bi_reverse(code, // the value to invert
-		len // its bit length
+			len // its bit length
 		) {
 			var res = 0;
 			do {
@@ -174,7 +148,6 @@
 			} while (--len > 0);
 			return res >>> 1;
 		}
-
 		// Generate the codes for a given tree and bit counts (which need not be
 		// optimal).
 		// IN assertion: the array bl_count contains the bit length statistics for
@@ -182,8 +155,8 @@
 		// OUT assertion: the field code is set for all tree elements of non
 		// zero code length.
 		function gen_codes(tree, // the tree to decorate
-		max_code, // largest code with non zero frequency
-		bl_count // number of codes at each bit length
+			max_code, // largest code with non zero frequency
+			bl_count // number of codes at each bit length
 		) {
 			var next_code = []; // next code value for each
 			// bit length
@@ -191,19 +164,16 @@
 			var bits; // bit index
 			var n; // code index
 			var len;
-
 			// The distribution counts are first used to generate the code values
 			// without bit reversal.
 			for (bits = 1; bits <= MAX_BITS; bits++) {
 				next_code[bits] = code = ((code + bl_count[bits - 1]) << 1);
 			}
-
 			// Check that the bit counts in bl_count are consistent. The last code
 			// must be all ones.
 			// Assert (code + bl_count[MAX_BITS]-1 == (1<<MAX_BITS)-1,
 			// "inconsistent bit counts");
 			// Tracev((stderr,"\ngen_codes: max_code %d ", max_code));
-
 			for (n = 0; n <= max_code; n++) {
 				len = tree[n * 2 + 1];
 				if (len === 0)
@@ -212,27 +182,24 @@
 				tree[n * 2] = bi_reverse(next_code[len]++, len);
 			}
 		}
-
 		// Construct one Huffman tree and assigns the code bit strings and lengths.
 		// Update the total bit length for the current block.
 		// IN assertion: the field freq is set for all tree elements.
 		// OUT assertions: the fields len and code are set to the optimal bit length
 		// and corresponding code. The length opt_len is updated; static_len is
 		// also updated if stree is not null. The field max_code is set.
-		that.build_tree = function(s) {
+		that.build_tree = function (s) {
 			var tree = that.dyn_tree;
 			var stree = that.stat_desc.static_tree;
 			var elems = that.stat_desc.elems;
 			var n, m; // iterate over heap elements
 			var max_code = -1; // largest code with non zero frequency
 			var node; // new node being created
-
 			// Construct the initial heap, with least frequent element in
 			// heap[1]. The sons of heap[n] are heap[2*n] and heap[2*n+1].
 			// heap[0] is not used.
 			s.heap_len = 0;
 			s.heap_max = HEAP_SIZE;
-
 			for (n = 0; n < elems; n++) {
 				if (tree[n * 2] !== 0) {
 					s.heap[++s.heap_len] = max_code = n;
@@ -241,7 +208,6 @@
 					tree[n * 2 + 1] = 0;
 				}
 			}
-
 			// The pkzip format requires that at least one distance code exists,
 			// and that at least one bit should be sent even if there is only one
 			// possible code. So to avoid special checks later on we force at least
@@ -256,16 +222,12 @@
 				// node is 0 or 1 so it does not have extra bits
 			}
 			that.max_code = max_code;
-
 			// The elements heap[heap_len/2+1 .. heap_len] are leaves of the tree,
 			// establish sub-heaps of increasing lengths:
-
 			for (n = Math.floor(s.heap_len / 2); n >= 1; n--)
 				s.pqdownheap(tree, n);
-
 			// Construct the Huffman tree by repeatedly combining the least two
 			// frequent nodes.
-
 			node = elems; // next internal node of the tree
 			do {
 				// n = node of least frequency
@@ -273,66 +235,54 @@
 				s.heap[1] = s.heap[s.heap_len--];
 				s.pqdownheap(tree, 1);
 				m = s.heap[1]; // m = node of next least frequency
-
 				s.heap[--s.heap_max] = n; // keep the nodes sorted by frequency
 				s.heap[--s.heap_max] = m;
-
 				// Create a new node father of n and m
 				tree[node * 2] = (tree[n * 2] + tree[m * 2]);
 				s.depth[node] = Math.max(s.depth[n], s.depth[m]) + 1;
 				tree[n * 2 + 1] = tree[m * 2 + 1] = node;
-
 				// and insert the new node in the heap
 				s.heap[1] = node++;
 				s.pqdownheap(tree, 1);
 			} while (s.heap_len >= 2);
-
 			s.heap[--s.heap_max] = s.heap[1];
-
 			// At this point, the fields freq and dad are set. We can now
 			// generate the bit lengths.
-
 			gen_bitlen(s);
-
 			// The field len is now set, we can generate the bit codes
 			gen_codes(tree, that.max_code, s.bl_count);
 		};
-
 	}
 
-	Tree._length_code = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16,
-			16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 20,
-			20, 20, 20, 20, 20, 20, 20, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
-			22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
-			24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
-			25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
-			26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28 ];
+	Tree._length_code = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16,
+		16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 20,
+		20, 20, 20, 20, 20, 20, 20, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22,
+		22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+		24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+		25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
+		26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28
+	];
 
-	Tree.base_length = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 0 ];
-
-	Tree.base_dist = [ 0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096, 6144, 8192, 12288, 16384,
-			24576 ];
+	Tree.base_length = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 0];
+	Tree.base_dist = [0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096, 6144, 8192, 12288, 16384,
+		24576
+	];
 
 	// Mapping from a distance to a distance code. dist is the distance - 1 and
 	// must not have side effects. _dist_code[256] and _dist_code[257] are never
 	// used.
-	Tree.d_code = function(dist) {
+	Tree.d_code = function (dist) {
 		return ((dist) < 256 ? _dist_code[dist] : _dist_code[256 + ((dist) >>> 7)]);
 	};
 
 	// extra bits for each length code
-	Tree.extra_lbits = [ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0 ];
-
+	Tree.extra_lbits = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
 	// extra bits for each distance code
-	Tree.extra_dbits = [ 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13 ];
-
+	Tree.extra_dbits = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
 	// extra bits for each bit length code
-	Tree.extra_blbits = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 ];
-
-	Tree.bl_order = [ 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 ];
-
+	Tree.extra_blbits = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7];
+	Tree.bl_order = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
 	// StaticTree
-
 	function StaticTree(static_tree, extra_bits, extra_base, elems, max_length) {
 		var that = this;
 		that.static_tree = static_tree;
@@ -342,34 +292,33 @@
 		that.max_length = max_length;
 	}
 
-	StaticTree.static_ltree = [ 12, 8, 140, 8, 76, 8, 204, 8, 44, 8, 172, 8, 108, 8, 236, 8, 28, 8, 156, 8, 92, 8, 220, 8, 60, 8, 188, 8, 124, 8, 252, 8, 2, 8,
-			130, 8, 66, 8, 194, 8, 34, 8, 162, 8, 98, 8, 226, 8, 18, 8, 146, 8, 82, 8, 210, 8, 50, 8, 178, 8, 114, 8, 242, 8, 10, 8, 138, 8, 74, 8, 202, 8, 42,
-			8, 170, 8, 106, 8, 234, 8, 26, 8, 154, 8, 90, 8, 218, 8, 58, 8, 186, 8, 122, 8, 250, 8, 6, 8, 134, 8, 70, 8, 198, 8, 38, 8, 166, 8, 102, 8, 230, 8,
-			22, 8, 150, 8, 86, 8, 214, 8, 54, 8, 182, 8, 118, 8, 246, 8, 14, 8, 142, 8, 78, 8, 206, 8, 46, 8, 174, 8, 110, 8, 238, 8, 30, 8, 158, 8, 94, 8,
-			222, 8, 62, 8, 190, 8, 126, 8, 254, 8, 1, 8, 129, 8, 65, 8, 193, 8, 33, 8, 161, 8, 97, 8, 225, 8, 17, 8, 145, 8, 81, 8, 209, 8, 49, 8, 177, 8, 113,
-			8, 241, 8, 9, 8, 137, 8, 73, 8, 201, 8, 41, 8, 169, 8, 105, 8, 233, 8, 25, 8, 153, 8, 89, 8, 217, 8, 57, 8, 185, 8, 121, 8, 249, 8, 5, 8, 133, 8,
-			69, 8, 197, 8, 37, 8, 165, 8, 101, 8, 229, 8, 21, 8, 149, 8, 85, 8, 213, 8, 53, 8, 181, 8, 117, 8, 245, 8, 13, 8, 141, 8, 77, 8, 205, 8, 45, 8,
-			173, 8, 109, 8, 237, 8, 29, 8, 157, 8, 93, 8, 221, 8, 61, 8, 189, 8, 125, 8, 253, 8, 19, 9, 275, 9, 147, 9, 403, 9, 83, 9, 339, 9, 211, 9, 467, 9,
-			51, 9, 307, 9, 179, 9, 435, 9, 115, 9, 371, 9, 243, 9, 499, 9, 11, 9, 267, 9, 139, 9, 395, 9, 75, 9, 331, 9, 203, 9, 459, 9, 43, 9, 299, 9, 171, 9,
-			427, 9, 107, 9, 363, 9, 235, 9, 491, 9, 27, 9, 283, 9, 155, 9, 411, 9, 91, 9, 347, 9, 219, 9, 475, 9, 59, 9, 315, 9, 187, 9, 443, 9, 123, 9, 379,
-			9, 251, 9, 507, 9, 7, 9, 263, 9, 135, 9, 391, 9, 71, 9, 327, 9, 199, 9, 455, 9, 39, 9, 295, 9, 167, 9, 423, 9, 103, 9, 359, 9, 231, 9, 487, 9, 23,
-			9, 279, 9, 151, 9, 407, 9, 87, 9, 343, 9, 215, 9, 471, 9, 55, 9, 311, 9, 183, 9, 439, 9, 119, 9, 375, 9, 247, 9, 503, 9, 15, 9, 271, 9, 143, 9,
-			399, 9, 79, 9, 335, 9, 207, 9, 463, 9, 47, 9, 303, 9, 175, 9, 431, 9, 111, 9, 367, 9, 239, 9, 495, 9, 31, 9, 287, 9, 159, 9, 415, 9, 95, 9, 351, 9,
-			223, 9, 479, 9, 63, 9, 319, 9, 191, 9, 447, 9, 127, 9, 383, 9, 255, 9, 511, 9, 0, 7, 64, 7, 32, 7, 96, 7, 16, 7, 80, 7, 48, 7, 112, 7, 8, 7, 72, 7,
-			40, 7, 104, 7, 24, 7, 88, 7, 56, 7, 120, 7, 4, 7, 68, 7, 36, 7, 100, 7, 20, 7, 84, 7, 52, 7, 116, 7, 3, 8, 131, 8, 67, 8, 195, 8, 35, 8, 163, 8,
-			99, 8, 227, 8 ];
+	StaticTree.static_ltree = [12, 8, 140, 8, 76, 8, 204, 8, 44, 8, 172, 8, 108, 8, 236, 8, 28, 8, 156, 8, 92, 8, 220, 8, 60, 8, 188, 8, 124, 8, 252, 8, 2, 8,
+		130, 8, 66, 8, 194, 8, 34, 8, 162, 8, 98, 8, 226, 8, 18, 8, 146, 8, 82, 8, 210, 8, 50, 8, 178, 8, 114, 8, 242, 8, 10, 8, 138, 8, 74, 8, 202, 8, 42,
+		8, 170, 8, 106, 8, 234, 8, 26, 8, 154, 8, 90, 8, 218, 8, 58, 8, 186, 8, 122, 8, 250, 8, 6, 8, 134, 8, 70, 8, 198, 8, 38, 8, 166, 8, 102, 8, 230, 8,
+		22, 8, 150, 8, 86, 8, 214, 8, 54, 8, 182, 8, 118, 8, 246, 8, 14, 8, 142, 8, 78, 8, 206, 8, 46, 8, 174, 8, 110, 8, 238, 8, 30, 8, 158, 8, 94, 8,
+		222, 8, 62, 8, 190, 8, 126, 8, 254, 8, 1, 8, 129, 8, 65, 8, 193, 8, 33, 8, 161, 8, 97, 8, 225, 8, 17, 8, 145, 8, 81, 8, 209, 8, 49, 8, 177, 8, 113,
+		8, 241, 8, 9, 8, 137, 8, 73, 8, 201, 8, 41, 8, 169, 8, 105, 8, 233, 8, 25, 8, 153, 8, 89, 8, 217, 8, 57, 8, 185, 8, 121, 8, 249, 8, 5, 8, 133, 8,
+		69, 8, 197, 8, 37, 8, 165, 8, 101, 8, 229, 8, 21, 8, 149, 8, 85, 8, 213, 8, 53, 8, 181, 8, 117, 8, 245, 8, 13, 8, 141, 8, 77, 8, 205, 8, 45, 8,
+		173, 8, 109, 8, 237, 8, 29, 8, 157, 8, 93, 8, 221, 8, 61, 8, 189, 8, 125, 8, 253, 8, 19, 9, 275, 9, 147, 9, 403, 9, 83, 9, 339, 9, 211, 9, 467, 9,
+		51, 9, 307, 9, 179, 9, 435, 9, 115, 9, 371, 9, 243, 9, 499, 9, 11, 9, 267, 9, 139, 9, 395, 9, 75, 9, 331, 9, 203, 9, 459, 9, 43, 9, 299, 9, 171, 9,
+		427, 9, 107, 9, 363, 9, 235, 9, 491, 9, 27, 9, 283, 9, 155, 9, 411, 9, 91, 9, 347, 9, 219, 9, 475, 9, 59, 9, 315, 9, 187, 9, 443, 9, 123, 9, 379,
+		9, 251, 9, 507, 9, 7, 9, 263, 9, 135, 9, 391, 9, 71, 9, 327, 9, 199, 9, 455, 9, 39, 9, 295, 9, 167, 9, 423, 9, 103, 9, 359, 9, 231, 9, 487, 9, 23,
+		9, 279, 9, 151, 9, 407, 9, 87, 9, 343, 9, 215, 9, 471, 9, 55, 9, 311, 9, 183, 9, 439, 9, 119, 9, 375, 9, 247, 9, 503, 9, 15, 9, 271, 9, 143, 9,
+		399, 9, 79, 9, 335, 9, 207, 9, 463, 9, 47, 9, 303, 9, 175, 9, 431, 9, 111, 9, 367, 9, 239, 9, 495, 9, 31, 9, 287, 9, 159, 9, 415, 9, 95, 9, 351, 9,
+		223, 9, 479, 9, 63, 9, 319, 9, 191, 9, 447, 9, 127, 9, 383, 9, 255, 9, 511, 9, 0, 7, 64, 7, 32, 7, 96, 7, 16, 7, 80, 7, 48, 7, 112, 7, 8, 7, 72, 7,
+		40, 7, 104, 7, 24, 7, 88, 7, 56, 7, 120, 7, 4, 7, 68, 7, 36, 7, 100, 7, 20, 7, 84, 7, 52, 7, 116, 7, 3, 8, 131, 8, 67, 8, 195, 8, 35, 8, 163, 8,
+		99, 8, 227, 8
+	];
 
-	StaticTree.static_dtree = [ 0, 5, 16, 5, 8, 5, 24, 5, 4, 5, 20, 5, 12, 5, 28, 5, 2, 5, 18, 5, 10, 5, 26, 5, 6, 5, 22, 5, 14, 5, 30, 5, 1, 5, 17, 5, 9, 5,
-			25, 5, 5, 5, 21, 5, 13, 5, 29, 5, 3, 5, 19, 5, 11, 5, 27, 5, 7, 5, 23, 5 ];
+	StaticTree.static_dtree = [0, 5, 16, 5, 8, 5, 24, 5, 4, 5, 20, 5, 12, 5, 28, 5, 2, 5, 18, 5, 10, 5, 26, 5, 6, 5, 22, 5, 14, 5, 30, 5, 1, 5, 17, 5, 9, 5,
+		25, 5, 5, 5, 21, 5, 13, 5, 29, 5, 3, 5, 19, 5, 11, 5, 27, 5, 7, 5, 23, 5
+	];
 
 	StaticTree.static_l_desc = new StaticTree(StaticTree.static_ltree, Tree.extra_lbits, LITERALS + 1, L_CODES, MAX_BITS);
-
 	StaticTree.static_d_desc = new StaticTree(StaticTree.static_dtree, Tree.extra_dbits, 0, D_CODES, MAX_BITS);
-
 	StaticTree.static_bl_desc = new StaticTree(null, Tree.extra_blbits, 0, BL_CODES, MAX_BL_BITS);
 
 	// Deflate
-
 	var MAX_MEM_LEVEL = 9;
 	var DEF_MEM_LEVEL = 8;
 
@@ -385,48 +334,42 @@
 	var STORED = 0;
 	var FAST = 1;
 	var SLOW = 2;
-	var config_table = [ new Config(0, 0, 0, 0, STORED), new Config(4, 4, 8, 4, FAST), new Config(4, 5, 16, 8, FAST), new Config(4, 6, 32, 32, FAST),
-			new Config(4, 4, 16, 16, SLOW), new Config(8, 16, 32, 32, SLOW), new Config(8, 16, 128, 128, SLOW), new Config(8, 32, 128, 256, SLOW),
-			new Config(32, 128, 258, 1024, SLOW), new Config(32, 258, 258, 4096, SLOW) ];
+	var config_table = [new Config(0, 0, 0, 0, STORED), new Config(4, 4, 8, 4, FAST), new Config(4, 5, 16, 8, FAST), new Config(4, 6, 32, 32, FAST),
+		new Config(4, 4, 16, 16, SLOW), new Config(8, 16, 32, 32, SLOW), new Config(8, 16, 128, 128, SLOW), new Config(8, 32, 128, 256, SLOW),
+		new Config(32, 128, 258, 1024, SLOW), new Config(32, 258, 258, 4096, SLOW)
+	];
 
-	var z_errmsg = [ "need dictionary", // Z_NEED_DICT
-	// 2
-	"stream end", // Z_STREAM_END 1
-	"", // Z_OK 0
-	"", // Z_ERRNO (-1)
-	"stream error", // Z_STREAM_ERROR (-2)
-	"data error", // Z_DATA_ERROR (-3)
-	"", // Z_MEM_ERROR (-4)
-	"buffer error", // Z_BUF_ERROR (-5)
-	"",// Z_VERSION_ERROR (-6)
-	"" ];
+	var z_errmsg = ["need dictionary", // Z_NEED_DICT
+		// 2
+		"stream end", // Z_STREAM_END 1
+		"", // Z_OK 0
+		"", // Z_ERRNO (-1)
+		"stream error", // Z_STREAM_ERROR (-2)
+		"data error", // Z_DATA_ERROR (-3)
+		"", // Z_MEM_ERROR (-4)
+		"buffer error", // Z_BUF_ERROR (-5)
+		"", // Z_VERSION_ERROR (-6)
+		""
+	];
 
 	// block not completed, need more input or more output
 	var NeedMore = 0;
-
 	// block flush performed
 	var BlockDone = 1;
-
 	// finish started, need only more output at next deflate
 	var FinishStarted = 2;
-
 	// finish done, accept no more input or output
 	var FinishDone = 3;
-
 	// preset dictionary flag in zlib header
 	var PRESET_DICT = 0x20;
-
 	var INIT_STATE = 42;
 	var BUSY_STATE = 113;
 	var FINISH_STATE = 666;
-
 	// The deflate compression method
 	var Z_DEFLATED = 8;
-
 	var STORED_BLOCK = 0;
 	var STATIC_TREES = 1;
 	var DYN_TREES = 2;
-
 	var MIN_MATCH = 3;
 	var MAX_MATCH = 258;
 	var MIN_LOOKAHEAD = (MAX_MATCH + MIN_MATCH + 1);
@@ -438,7 +381,6 @@
 	}
 
 	function Deflate() {
-
 		var that = this;
 		var strm; // pointer back to this zlib stream
 		var status; // as the name implies
@@ -448,11 +390,9 @@
 		// pending; // nb of bytes in the pending buffer
 		var method; // STORED (for zip only) or DEFLATED
 		var last_flush; // value of flush param for previous deflate call
-
 		var w_size; // LZ77 window size (32K by default)
 		var w_bits; // log2(w_size) (8..16)
 		var w_mask; // w_size - 1
-
 		var window;
 		// Sliding window. Input bytes are read into the second half of the window,
 		// and move to the first half later to keep a dictionary of at least wSize
@@ -461,85 +401,64 @@
 		// performed with a length multiple of the block size. Also, it limits
 		// the window size to 64K, which is quite useful on MSDOS.
 		// To do: use the user input buffer as sliding window.
-
 		var window_size;
 		// Actual size of window: 2*wSize, except when the user input buffer
 		// is directly used as sliding window.
-
 		var prev;
 		// Link to older string with same hash index. To limit the size of this
 		// array to 64K, this link is maintained only for the last 32K strings.
 		// An index in this array is thus a window index modulo 32K.
-
 		var head; // Heads of the hash chains or NIL.
-
 		var ins_h; // hash index of string to be inserted
 		var hash_size; // number of elements in hash table
 		var hash_bits; // log2(hash_size)
 		var hash_mask; // hash_size-1
-
 		// Number of bits by which ins_h must be shifted at each input
 		// step. It must be such that after MIN_MATCH steps, the oldest
 		// byte no longer takes part in the hash key, that is:
 		// hash_shift * MIN_MATCH >= hash_bits
 		var hash_shift;
-
 		// Window position at the beginning of the current output block. Gets
 		// negative when the window is moved backwards.
-
 		var block_start;
-
 		var match_length; // length of best match
 		var prev_match; // previous match
 		var match_available; // set if previous match exists
 		var strstart; // start of string to insert
 		var match_start; // start of matching string
 		var lookahead; // number of valid bytes ahead in window
-
 		// Length of the best match at previous step. Matches not greater than this
 		// are discarded. This is used in the lazy match evaluation.
 		var prev_length;
-
 		// To speed up deflation, hash chains are never searched beyond this
 		// length. A higher limit improves compression ratio but degrades the speed.
 		var max_chain_length;
-
 		// Attempt to find a better match only when the current match is strictly
 		// smaller than this value. This mechanism is used only for compression
 		// levels >= 4.
 		var max_lazy_match;
-
 		// Insert new strings in the hash table only if the match length is not
 		// greater than this length. This saves time but degrades compression.
 		// max_insert_length is used only for compression levels <= 3.
-
 		var level; // compression level (1..9)
 		var strategy; // favor or force Huffman coding
-
 		// Use a faster search when the previous match is longer than this
 		var good_match;
-
 		// Stop searching when current match exceeds this
 		var nice_match;
-
 		var dyn_ltree; // literal and length tree
 		var dyn_dtree; // distance tree
 		var bl_tree; // Huffman tree for bit lengths
-
 		var l_desc = new Tree(); // desc for literal tree
 		var d_desc = new Tree(); // desc for distance tree
 		var bl_desc = new Tree(); // desc for bit length tree
-
 		// that.heap_len; // number of elements in the heap
 		// that.heap_max; // element of largest frequency
 		// The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
 		// The same heap array is used to build all trees.
-
 		// Depth of each subtree used as tie breaker for trees of equal frequency
 		that.depth = [];
-
 		var l_buf; // index for literals or lengths */
-
 		// Size of match buffer for literals/lengths. There are 4 reasons for
 		// limiting lit_bufsize to 64K:
 		// - frequencies can be kept in 16 bit counters
@@ -653,8 +572,8 @@
 		// stopping
 		// when the heap property is re-established (each father smaller than its
 		// two sons).
-		that.pqdownheap = function(tree, // the tree to restore
-		k // node to move down
+		that.pqdownheap = function (tree, // the tree to restore
+			k // node to move down
 		) {
 			var heap = that.heap;
 			var v = heap[k];
@@ -679,8 +598,8 @@
 
 		// Scan a literal or distance tree to determine the frequencies of the codes
 		// in the bit length tree.
-		function scan_tree(tree,// the tree to be scanned
-		max_code // and its largest code of non zero frequency
+		function scan_tree(tree, // the tree to be scanned
+			max_code // and its largest code of non zero frequency
 		) {
 			var n; // iterates over all tree elements
 			var prevlen = -1; // last emitted length
@@ -794,8 +713,8 @@
 
 		// Send a literal or distance tree in compressed form, using the codes in
 		// bl_tree.
-		function send_tree(tree,// the tree to be sent
-		max_code // and its largest code of non zero frequency
+		function send_tree(tree, // the tree to be sent
+			max_code // and its largest code of non zero frequency
 		) {
 			var n; // iterates over all tree elements
 			var prevlen = -1; // last emitted length
@@ -907,7 +826,7 @@
 		// Save the match info and tally the frequency counts. Return true if
 		// the current block must be flushed.
 		function _tr_tally(dist, // distance of matched string
-		lc // match length-MIN_MATCH or unmatched char (if dist==0)
+			lc // match length-MIN_MATCH or unmatched char (if dist==0)
 		) {
 			var out_length, in_length, dcode;
 			that.pending_buf[d_buf + last_lit * 2] = (dist >>> 8) & 0xff;
@@ -1006,8 +925,8 @@
 		// Copy a stored block, storing first the length and its
 		// one's complement if requested.
 		function copy_block(buf, // the input data
-		len, // its length
-		header // true if block header must be written
+			len, // its length
+			header // true if block header must be written
 		) {
 			bi_windup(); // align on byte boundary
 			last_eob_len = 8; // enough lookahead for inflate
@@ -1023,8 +942,8 @@
 
 		// Send a stored block
 		function _tr_stored_block(buf, // input block
-		stored_len, // length of input block
-		eof // true if this is the last block for a file
+			stored_len, // length of input block
+			eof // true if this is the last block for a file
 		) {
 			send_bits((STORED_BLOCK << 1) + (eof ? 1 : 0), 3); // send block type
 			copy_block(buf, stored_len, true); // with header
@@ -1033,10 +952,10 @@
 		// Determine the best encoding for the current block: dynamic trees, static
 		// trees or store, and output the encoded block to the zip file.
 		function _tr_flush_block(buf, // input block, or NULL if too old
-		stored_len, // length of input block
-		eof // true if this is the last block for a file
+			stored_len, // length of input block
+			eof // true if this is the last block for a file
 		) {
-			var opt_lenb, static_lenb;// opt_len and static_len in bytes
+			var opt_lenb, static_lenb; // opt_len and static_len in bytes
 			var max_blindex = 0; // index of last bit length code of non zero freq
 
 			// Build the Huffman trees unless a stored block is forced
@@ -1291,8 +1210,8 @@
 
 				// Skip to next match if the match length cannot increase
 				// or if the match length is less than 2:
-				if (window[match + best_len] != scan_end || window[match + best_len - 1] != scan_end1 || window[match] != window[scan]
-						|| window[++match] != window[scan + 1])
+				if (window[match + best_len] != scan_end || window[match + best_len - 1] != scan_end1 || window[match] != window[scan] ||
+					window[++match] != window[scan + 1])
 					continue;
 
 				// The check at best_len-1 can be removed because it will be made
@@ -1305,10 +1224,9 @@
 
 				// We check for insufficient lookahead only every 8th comparison;
 				// the 256th check will be made at strstart+258.
-				do {
-				} while (window[++scan] == window[++match] && window[++scan] == window[++match] && window[++scan] == window[++match]
-						&& window[++scan] == window[++match] && window[++scan] == window[++match] && window[++scan] == window[++match]
-						&& window[++scan] == window[++match] && window[++scan] == window[++match] && scan < strend);
+				do {} while (window[++scan] == window[++match] && window[++scan] == window[++match] && window[++scan] == window[++match] &&
+					window[++scan] == window[++match] && window[++scan] == window[++match] && window[++scan] == window[++match] &&
+					window[++scan] == window[++match] && window[++scan] == window[++match] && scan < strend);
 
 				len = MAX_MATCH - (strend - scan);
 				scan = strend - MAX_MATCH;
@@ -1572,7 +1490,7 @@
 		function deflateReset(strm) {
 			strm.total_in = strm.total_out = 0;
 			strm.msg = null; //
-			
+
 			that.pending = 0;
 			that.pending_out = 0;
 
@@ -1585,7 +1503,7 @@
 			return Z_OK;
 		}
 
-		that.deflateInit = function(strm, _level, bits, _method, memLevel, _strategy) {
+		that.deflateInit = function (strm, _level, bits, _method, memLevel, _strategy) {
 			if (!_method)
 				_method = Z_DEFLATED;
 			if (!memLevel)
@@ -1606,8 +1524,8 @@
 			if (_level == Z_DEFAULT_COMPRESSION)
 				_level = 6;
 
-			if (memLevel < 1 || memLevel > MAX_MEM_LEVEL || _method != Z_DEFLATED || bits < 9 || bits > 15 || _level < 0 || _level > 9 || _strategy < 0
-					|| _strategy > Z_HUFFMAN_ONLY) {
+			if (memLevel < 1 || memLevel > MAX_MEM_LEVEL || _method != Z_DEFLATED || bits < 9 || bits > 15 || _level < 0 || _level > 9 || _strategy < 0 ||
+				_strategy > Z_HUFFMAN_ONLY) {
 				return Z_STREAM_ERROR;
 			}
 
@@ -1644,7 +1562,7 @@
 			return deflateReset(strm);
 		};
 
-		that.deflateEnd = function() {
+		that.deflateEnd = function () {
 			if (status != INIT_STATE && status != BUSY_STATE && status != FINISH_STATE) {
 				return Z_STREAM_ERROR;
 			}
@@ -1658,7 +1576,7 @@
 			return status == BUSY_STATE ? Z_DATA_ERROR : Z_OK;
 		};
 
-		that.deflateParams = function(strm, _level, _strategy) {
+		that.deflateParams = function (strm, _level, _strategy) {
 			var err = Z_OK;
 
 			if (_level == Z_DEFAULT_COMPRESSION) {
@@ -1684,7 +1602,7 @@
 			return err;
 		};
 
-		that.deflateSetDictionary = function(strm, dictionary, dictLength) {
+		that.deflateSetDictionary = function (strm, dictionary, dictLength) {
 			var length = dictLength;
 			var n, index = 0;
 
@@ -1717,7 +1635,7 @@
 			return Z_OK;
 		};
 
-		that.deflate = function(_strm, flush) {
+		that.deflate = function (_strm, flush) {
 			var i, header, level_flags, old_flush, bstate;
 
 			if (flush > Z_FINISH || flush < 0) {
@@ -1786,16 +1704,16 @@
 			if (strm.avail_in !== 0 || lookahead !== 0 || (flush != Z_NO_FLUSH && status != FINISH_STATE)) {
 				bstate = -1;
 				switch (config_table[level].func) {
-				case STORED:
-					bstate = deflate_stored(flush);
-					break;
-				case FAST:
-					bstate = deflate_fast(flush);
-					break;
-				case SLOW:
-					bstate = deflate_slow(flush);
-					break;
-				default:
+					case STORED:
+						bstate = deflate_stored(flush);
+						break;
+					case FAST:
+						bstate = deflate_fast(flush);
+						break;
+					case SLOW:
+						bstate = deflate_slow(flush);
+						break;
+					default:
 				}
 
 				if (bstate == FinishStarted || bstate == FinishDone) {
@@ -1823,7 +1741,7 @@
 						// as a special marker by inflate_sync().
 						if (flush == Z_FULL_FLUSH) {
 							// state.head[s.hash_size-1]=0;
-							for (i = 0; i < hash_size/*-1*/; i++)
+							for (i = 0; i < hash_size /*-1*/ ; i++)
 								// forget history
 								head[i] = 0;
 						}
@@ -1859,7 +1777,7 @@
 	}
 
 	ZStream.prototype = {
-		deflateInit : function(level, bits) {
+		deflateInit: function (level, bits) {
 			var that = this;
 			that.dstate = new Deflate();
 			if (!bits)
@@ -1867,7 +1785,7 @@
 			return that.dstate.deflateInit(that, level, bits);
 		},
 
-		deflate : function(flush) {
+		deflate: function (flush) {
 			var that = this;
 			if (!that.dstate) {
 				return Z_STREAM_ERROR;
@@ -1875,7 +1793,7 @@
 			return that.dstate.deflate(that, flush);
 		},
 
-		deflateEnd : function() {
+		deflateEnd: function () {
 			var that = this;
 			if (!that.dstate)
 				return Z_STREAM_ERROR;
@@ -1884,14 +1802,14 @@
 			return ret;
 		},
 
-		deflateParams : function(level, strategy) {
+		deflateParams: function (level, strategy) {
 			var that = this;
 			if (!that.dstate)
 				return Z_STREAM_ERROR;
 			return that.dstate.deflateParams(that, level, strategy);
 		},
 
-		deflateSetDictionary : function(dictionary, dictLength) {
+		deflateSetDictionary: function (dictionary, dictLength) {
 			var that = this;
 			if (!that.dstate)
 				return Z_STREAM_ERROR;
@@ -1903,7 +1821,7 @@
 		// this function so some applications may wish to modify it to avoid
 		// allocating a large strm->next_in buffer and copying from it.
 		// (See also flush_pending()).
-		read_buf : function(buf, start, size) {
+		read_buf: function (buf, start, size) {
 			var that = this;
 			var len = that.avail_in;
 			if (len > size)
@@ -1921,7 +1839,7 @@
 		// through this function so some applications may wish to modify it
 		// to avoid allocating a large strm->next_out buffer and copying into it.
 		// (See also read_buf()).
-		flush_pending : function() {
+		flush_pending: function () {
 			var that = this;
 			var len = that.dstate.pending;
 
@@ -1965,8 +1883,12 @@
 		z.deflateInit(level);
 		z.next_out = buf;
 
-		that.append = function(data, onprogress) {
-			var err, buffers = [], lastIndex = 0, bufferIndex = 0, bufferSize = 0, array;
+		that.append = function (data, onprogress) {
+			var err, buffers = [],
+				lastIndex = 0,
+				bufferIndex = 0,
+				bufferSize = 0,
+				array;
 			if (!data.length)
 				return;
 			z.next_in_index = 0;
@@ -1990,14 +1912,17 @@
 				}
 			} while (z.avail_in > 0 || z.avail_out === 0);
 			array = new Uint8Array(bufferSize);
-			buffers.forEach(function(chunk) {
+			buffers.forEach(function (chunk) {
 				array.set(chunk, bufferIndex);
 				bufferIndex += chunk.length;
 			});
 			return array;
 		};
-		that.flush = function() {
-			var err, buffers = [], bufferIndex = 0, bufferSize = 0, array;
+		that.flush = function () {
+			var err, buffers = [],
+				bufferIndex = 0,
+				bufferSize = 0,
+				array;
 			do {
 				z.next_out_index = 0;
 				z.avail_out = bufsize;
@@ -2010,7 +1935,7 @@
 			} while (z.avail_in > 0 || z.avail_out === 0);
 			z.deflateEnd();
 			array = new Uint8Array(bufferSize);
-			buffers.forEach(function(chunk) {
+			buffers.forEach(function (chunk) {
 				array.set(chunk, bufferIndex);
 				bufferIndex += chunk.length;
 			});
@@ -2024,28 +1949,28 @@
 		obj.zip.Deflater = Deflater;
 	else {
 		deflater = new Deflater();
-		obj.addEventListener("message", function(event) {
+		obj.addEventListener("message", function (event) {
 			var message = event.data;
 			if (message.init) {
 				deflater = new Deflater(message.level);
 				obj.postMessage({
-					oninit : true
+					oninit: true
 				});
 			}
 			if (message.append)
 				obj.postMessage({
-					onappend : true,
-					data : deflater.append(message.data, function(current) {
+					onappend: true,
+					data: deflater.append(message.data, function (current) {
 						obj.postMessage({
-							progress : true,
-							current : current
+							progress: true,
+							current: current
 						});
 					})
 				});
 			if (message.flush)
 				obj.postMessage({
-					onflush : true,
-					data : deflater.flush()
+					onflush: true,
+					data: deflater.flush()
 				});
 		}, false);
 	}
