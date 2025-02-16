@@ -6616,10 +6616,10 @@ function init_1() {
   Init_6();
   vid_xpos_0 = Get('vid_xpos', '3', 1);
   vid_ypos_0 = Get('vid_ypos', '22', 1);
-  Get('vid_width', '800', 1);
-  Get('vid_height', '600', 1);
-  Get('vid_fullscreen', '0', 1);
-  Get('vid_gamma', '1', 1);
+  Get('vid_width', window.innerWidth, 1);
+  Get('vid_height', window.innerHeight, 1);
+  Get('vid_fullscreen', '1', 1);
+  Get('vid_gamma', '0.2', 1);
   LoadRefresh();
   $clinit_Video();
   addCommand('gun_next', Gun_Next_f);
@@ -13876,7 +13876,6 @@ defineSeed(356, 1, makeCastMap([Q$Lightstyle]), Lightstyle_0);
 _.white = 0;
 
 // main menu
-
 function $clinit_Menu() {
   $clinit_Menu = nullMethod;
   var n, n0, n1;
@@ -13893,9 +13892,9 @@ function $clinit_Menu() {
       ]), Q$String, [
       'm_main_game',
       'm_main_options',
-      'm_main_quit',
       'm_main_multiplayer',
-      'm_main_video'
+      'm_main_video',
+      'm_main_quit'
     ]);
   MAIN_MENU_NAMES = MAIN_MENU_NAMES_NOMULTI;
   m_layers = initDim(
@@ -14075,7 +14074,7 @@ function $clinit_Menu() {
   Menu_Options = new Menu$8_0;
   idcredits = initValues(
     _3Ljava_lang_String_2_classLit, makeCastMap([Q$Serializable, Q$Serializable_$1, Q$CharSequence_$1, Q$Cloneable, Q$Comparable_$1, Q$Object_$1, Q$String_$1]), Q$String, [
-      '+QUAKE II BY ID SOFTWARE', '', '+PROGRAMMING', 'John Carmack', 'John Cash', 'Brian Hook', '', '+JAVA PORT BY BYTONIC', 'Carsten Weisse', 'Holger Zickner', 'Rene Stoeckel', '', '+GWT PORT BY GOOGLE', 'Ray Cromwell', 'Stefan Haustein', 'Joel Webber', 'Magnus Marks', '', '+FULL VERSION PORT', 'Magnus Marks', '', '+ART', 'Adrian Carmack', 'Kevin Cloud', 'Paul Steed', '', '+LEVEL DESIGN', 'Tim Willits', 'American McGee', 'Christian Antkow', 'Paul Jaquays', 'Brandon James', '', '+BIZ',
+      '+QUAKE II BY ID SOFTWARE', '', '+PROGRAMMING', 'John Carmack', 'John Cash', 'Brian Hook', '', '+JAVA PORT BY BYTONIC', 'Carsten Weisse', 'Holger Zickner', 'Rene Stoeckel', '', '+GWT PORT BY GOOGLE', 'Ray Cromwell', 'Stefan Haustein', 'Joel Webber', 'Adam Amir', '', '+FULL VERSION PORT', 'Adam Amir', '', '+ART', 'Adrian Carmack', 'Kevin Cloud', 'Paul Steed', '', '+LEVEL DESIGN', 'Tim Willits', 'American McGee', 'Christian Antkow', 'Paul Jaquays', 'Brandon James', '', '+BIZ',
       'Todd Hollenshead', 'Barrett (Bear) Alexander', 'Donna Jackson', '', '', '+SPECIAL THANKS', 'Ben Donges for beta testing', '', '', '', '', '', '', '+ADDITIONAL SUPPORT', '', '+LINUX PORT AND CTF', 'Dave "Zoid" Kirsch', '', '+CINEMATIC SEQUENCES', 'Ending Cinematic by Blur Studio - ', 'Venice, CA', '', 'Environment models for Introduction', 'Cinematic by Karl Dolgener', '', 'Assistance with environment design', 'by Cliff Iwai', '', '+SOUND EFFECTS AND MUSIC',
       'Sound Design by Soundelux Media Labs.', 'Music Composed and Produced by', 'Soundelux Media Labs.  Special thanks', 'to Bill Brown, Tom Ozanich, Brian', 'Celano, Jeff Eisner, and The Soundelux', 'Players.', '', '"Level Music" by Sonic Mayhem', 'www.sonicmayhem.com', '', '"Quake II Theme Song"', '(C) 1997 Rob Zombie. All Rights', 'Reserved.', '', 'Track 10 ("Climb") by Jer Sypult', '', 'Voice of computers by', 'Carly Staehlin-Taylor', '', '+THANKS TO ACTIVISION', '+IN PARTICULAR:', '',
       'John Tam', 'Steve Rosenthal', 'Marty Stratton', 'Henk Hartong', '', 'Quake II(tm) (C)1997 Id Software, Inc.', 'All Rights Reserved.  Distributed by', 'Activision, Inc. under license.', 'Quake II(tm), the Id Software name,', 'the "Q II"(tm) logo and id(tm)', 'logo are trademarks of Id Software,', 'Inc. Activision(R) is a registered', 'trademark of Activision, Inc. All', 'other trademarks and trade names are', 'properties of their respective owners.', null
@@ -14556,6 +14555,7 @@ function ForceMenuOff() {
   writeConfiguration();
 }
 
+// game menu
 function Game_MenuInit() {
   $clinit_Menu();
   s_game_menu.x_0 = round_int(($clinit_Globals(), viddef).width_0 * 0.5);
@@ -14943,6 +14943,7 @@ function Main_Draw() {
   re_0.DrawPic(xoffset - 30 - w, ystart + h_0 + 5, 'm_main_logo');
 }
 
+// menu buttons
 function Main_Key(key) {
   $clinit_Menu();
   switch (key) {
@@ -14970,7 +14971,13 @@ function Main_Key(key) {
             PushMenu(new Menu$59_0, new Menu$60_0);
             break;
           case 2:
-            PushMenu(new Menu$86_0, new Menu$87_0);
+            Multiplayer_MenuInit();
+            PushMenu(new Menu$19_0, new Menu$20_0);
+            break;
+          case 3:
+            break;
+          case 4:
+          PushMenu(new Menu$86_0, new Menu$87_0);
         }
       }
 
@@ -15271,7 +15278,7 @@ function Options_MenuInit() {
   Menu_AddItem(s_options_menu, s_options_sensitivity_slider);
   Menu_AddItem(s_options_menu, s_options_alwaysrun_box);
   Menu_AddItem(s_options_menu, s_options_joystick_box);
-  // Menu_AddItem(s_options_menu, s_options_controller_box);
+  Menu_AddItem(s_options_menu, s_options_controller_box);
   Menu_AddItem(s_options_menu, s_options_invertmouse_box);
   Menu_AddItem(s_options_menu, s_options_lookspring_box);
   Menu_AddItem(s_options_menu, s_options_lookstrafe_box);
@@ -15280,6 +15287,28 @@ function Options_MenuInit() {
   Menu_AddItem(s_options_menu, s_options_customize_options_action);
   Menu_AddItem(s_options_menu, s_options_defaults_action);
   Menu_AddItem(s_options_menu, s_options_console_action);
+}
+
+function Multiplayer_MenuInit() {
+  $clinit_Menu();
+  s_multiplayer_menu.x_0 = round_int(($clinit_Globals(), viddef).width_0 * 0.5 - 64);
+  s_multiplayer_menu.nitems = 0;
+  s_join_network_server_action.type_0 = 2;
+  s_join_network_server_action.flags = 1;
+  s_join_network_server_action.x_0 = 0;
+  s_join_network_server_action.y_0 = 0;
+  s_join_network_server_action.name_0 = ' join game';
+  s_join_network_server_action.callback = new Menu$17_0;
+  s_player_setup_action.type_0 = 2;
+  s_player_setup_action.flags = 1;
+  s_player_setup_action.x_0 = 0;
+  s_player_setup_action.y_0 = 20;
+  s_player_setup_action.name_0 = ' player setup';
+  s_player_setup_action.callback = new Menu$18_0;
+  Menu_AddItem(s_multiplayer_menu, s_join_network_server_action);
+  Menu_AddItem(s_multiplayer_menu, s_player_setup_action);
+  Menu_SetStatusBar(s_multiplayer_menu, null);
+  Menu_Center(s_multiplayer_menu);
 }
 
 function PlayerConfig_MenuDraw() {
@@ -15750,6 +15779,7 @@ _.execute_3 = function execute_77(o) {
   Menu_PlayerConfig_f();
 };
 
+// multiplayer menu
 function Menu$19_0() {}
 
 defineSeed(367, 228, {}, Menu$19_0);
@@ -15760,6 +15790,7 @@ _.execute = function execute_78() {
   Menu_Draw(s_multiplayer_menu);
 };
 
+// multiplayer menu
 function Menu$20_0() {}
 
 defineSeed(368, 363, {}, Menu$20_0);
@@ -15917,24 +15948,7 @@ function Menu$4_0() {}
 defineSeed(389, 228, {}, Menu$4_0);
 _.execute = function execute_100() {
   $clinit_Menu();
-  s_multiplayer_menu.x_0 = round_int(($clinit_Globals(), viddef).width_0 * 0.5 - 64);
-  s_multiplayer_menu.nitems = 0;
-  s_join_network_server_action.type_0 = 2;
-  s_join_network_server_action.flags = 1;
-  s_join_network_server_action.x_0 = 0;
-  s_join_network_server_action.y_0 = 0;
-  s_join_network_server_action.name_0 = ' join game';
-  s_join_network_server_action.callback = new Menu$17_0;
-  s_player_setup_action.type_0 = 2;
-  s_player_setup_action.flags = 1;
-  s_player_setup_action.x_0 = 0;
-  s_player_setup_action.y_0 = 20;
-  s_player_setup_action.name_0 = ' player setup';
-  s_player_setup_action.callback = new Menu$18_0;
-  Menu_AddItem(s_multiplayer_menu, s_join_network_server_action);
-  Menu_AddItem(s_multiplayer_menu, s_player_setup_action);
-  Menu_SetStatusBar(s_multiplayer_menu, null);
-  Menu_Center(s_multiplayer_menu);
+  Multiplayer_MenuInit();
   PushMenu(new Menu$19_0, new Menu$20_0);
 };
 
@@ -48030,8 +48044,8 @@ function init_2() {
   gl_swapinterval = Get('gl_swapinterval', '0', 1);
   Get('gl_saturatelighting', '0', 0);
   Get('gl_3dlabs_broken', '1', 1);
-  vid_fullscreen = Get('vid_fullscreen', '0', 1);
-  vid_gamma = Get('vid_gamma', '1.0', 1);
+  vid_fullscreen = Get('vid_fullscreen', '1', 1);
+  vid_gamma = Get('vid_gamma', '0.2', 1);
   Get('vid_ref', 'lwjgl', 1);
 }
 
@@ -48447,9 +48461,9 @@ _.BeginFrame = function BeginFrame_0(camera_separation) {
     ref = Get('vid_ref', 'lwjgl', 0);
     ref.modified = true;
   }
-  gl_log.modified && (gl_log.modified = false);
+  gl_log.modified && (gl_log.modified = true);
   gl_log.value_0 != 0;
-  vid_gamma.modified && (vid_gamma.modified = false);
+  vid_gamma.modified && (vid_gamma.modified = true);
   $glViewport(gl_0, 0, 0, vid.width_0, vid.height_0);
   $glMatrixMode(gl_0, 5889);
   $glLoadIdentity(gl_0);
