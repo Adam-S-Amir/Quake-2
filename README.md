@@ -12,7 +12,7 @@ I messed up with Git LFS and it corrupted all my files and now the commit histor
 > Edited original HTML file.
 > Deleted all unnecessary files.
 
-*Here are some other things Magnus would like to add to this project:*
+*Here are some other things I would like to add to this project:*
 
 - [ ] Add multiplayer support.
 - [ ] Add back .pak1 and .pak2 files.
